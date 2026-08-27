@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>日本歴史 年号テスト</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F7F4EE;
+  --surface: #FFFFFF;
+  --surface2: #F0ECE3;
+  --ink: #1E1A14;
+  --ink2: #5A5449;
+  --ink3: #9A9286;
+  --accent: #8B4513;
+  --accent-light: #F5E8DC;
+  --accent-mid: #C4622A;
+  --green: #2D6A4F;
+  --green-light: #D8F3E8;
+  --red: #8B1A1A;
+  --red-light: #FDEAEA;
+  --amber: #926B00;
+  --amber-light: #FFF3CD;
+  --border: #DDD8CE;
+  --border-light: #EAE6DD;
+  --r: 14px;
+  --r-sm: 8px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: 'Noto Sans JP', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(139,69,19,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(45,106,79,0.05) 0%, transparent 50%);
+}
+
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  min-height: 100vh;
+}
+
+/* ─── SCREEN TRANSITIONS ─── */
+.screen { display: none; animation: fadeIn .3s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ─── HOME SCREEN ─── */
+.home-header {
+  text-align: center;
+  padding: 32px 0 28px;
+  position: relative;
+}
+.home-icon {
+  width: 72px; height: 72px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 16px;
+  box-shadow: var(--shadow);
+}
+.home-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.home-sub {
+  font-size: 13px;
+  color: var(--ink3);
+  line-height: 1.6;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--ink3);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.test-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px 12px;
+  cursor: pointer;
+  transition: all .18s ease;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.test-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--border-light);
+  transition: background .18s;
+}
+.test-card:hover { border-color: var(--accent-mid); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.test-card:hover::before { background: var(--accent-mid); }
+.test-card.active { border-color: var(--accent); border-width: 2px; background: var(--accent-light); }
+.test-card.active::before { background: var(--accent); }
+.tc-num { font-size: 10px; color: var(--ink3); margin-bottom: 4px; letter-spacing: .05em; }
+.tc-era { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+.tc-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+.test-card.active .tc-badge { background: rgba(139,69,19,.12); color: var(--accent); border-color: rgba(139,69,19,.2); }
+.tc-best { font-size: 10px; color: var(--green); margin-top: 4px; font-weight: 500; }
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--r);
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all .18s;
+  background: var(--surface2);
+  color: var(--ink3);
+  border: 1.5px solid var(--border);
+}
+.start-btn.ready {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(139,69,19,.3);
+}
+.start-btn.ready:hover { background: #7A3A0F; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(139,69,19,.35); }
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.bottom-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .18s;
+  box-shadow: var(--shadow);
+}
+.bottom-card:hover { border-color: var(--accent-mid); transform: translateY(-1px); }
+.bc-icon { font-size: 26px; margin-bottom: 6px; }
+.bc-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.bc-sub { font-size: 11px; color: var(--ink3); line-height: 1.4; }
+
+/* ─── QUIZ SCREEN ─── */
+.quiz-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.back-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink2);
+  font-family: 'Noto Sans JP', sans-serif;
+  transition: all .15s;
+}
+.back-btn:hover { border-color: var(--accent-mid); color: var(--accent); }
+.quiz-title-wrap { flex: 1; }
+.quiz-title { font-size: 14px; font-weight: 700; }
+.quiz-era { font-size: 11px; color: var(--ink3); }
+.quiz-prog-txt { font-size: 13px; color: var(--ink3); font-weight: 500; white-space: nowrap; }
+
+.prog-track {
+  height: 5px;
+  background: var(--border-light);
+  border-radius: 3px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-mid));
+  border-radius: 3px;
+  transition: width .4s ease;
+}
+
+.question-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 22px 20px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.question-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-light), transparent);
+}
+.q-era-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid rgba(139,69,19,.2);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.q-event {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.q-hint {
+  font-size: 12px;
+  color: var(--ink3);
+  background: var(--surface2);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+.answer-section { margin-bottom: 16px; }
+.answer-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+.year-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.year-input {
+  flex: 1;
+  font-size: 34px;
+  font-weight: 700;
+  font-family: 'Noto Serif JP', serif;
+  text-align: center;
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+  letter-spacing: .08em;
+  transition: border-color .15s, background .15s;
+  -moz-appearance: textfield;
+}
+.year-input::-webkit-outer-spin-button,
+.year-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.year-input:focus { border-color: var(--accent-mid); }
+.year-input.correct { border-color: var(--green); background: var(--green-light); color: var(--green); }
+.year-input.wrong { border-color: var(--red); background: var(--red-light); color: var(--red); }
+.year-input.close { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+.year-suffix { font-size: 18px; color: var(--ink3); font-weight: 500; white-space: nowrap; }
+
+.result-panel {
+  display: none;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  animation: slideUp .2s ease;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.result-panel.correct { border-color: var(--green); background: var(--green-light); }
+.result-panel.wrong { border-color: var(--red); background: var(--red-light); }
+.result-panel.close { border-color: var(--amber); background: var(--amber-light); }
+.rp-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rp-badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.correct .rp-badge { background: var(--green); color: #fff; }
+.wrong .rp-badge { background: var(--red); color: #fff; }
+.close .rp-badge { background: var(--amber); color: #fff; }
+.rp-year { font-size: 22px; font-weight: 700; font-family: 'Noto Serif JP', serif; }
+.correct .rp-year { color: var(--green); }
+.wrong .rp-year { color: var(--red); }
+.close .rp-year { color: var(--amber); }
+.rp-detail { font-size: 12px; color: var(--ink2); line-height: 1.6; }
+
+.action-row { display: flex; gap: 10px; }
+.check-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--r);
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: all .15s;
+  box-shadow: 0 3px 12px rgba(139,69,19,.25);
+}
+.check-btn:hover:not(:disabled) { background: #7A3A0F; transform: translateY(-1px); }
+.check-btn:disabled { background: var(--surface2); color: var(--ink3); border: 1.5px solid var(--border); box-shadow: none; cursor: default; }
+.next-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--ink);
+  transition: all .15s;
+  display: none;
+}
+.next-btn:hover { border-color: var(--accent-mid); background: var(--accent-light); color: var(--accent); }
+
+/* ─── RESULT SCREEN ─── */
+.result-screen-inner { padding: 20px 0; }
+.result-top { text-align: center; margin-bottom: 28px; }
+.score-ring {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--border-light);
+  margin: 0 auto 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  position: relative;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.score-ring svg {
+  position: absolute; top: -4px; left: -4px;
+  width: 128px; height: 128px;
+  transform: rotate(-90deg);
+}
+.score-ring circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.score-pct { font-size: 30px; font-weight: 700; font-family: 'Noto Serif JP', serif; line-height: 1; }
+.score-frac { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+.result-grade { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.result-msg { font-size: 13px; color: var(--ink3); }
+
+.review-section { margin-bottom: 24px; }
+.review-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--ink3);
+  margin-bottom: 10px;
+}
+.review-item {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 11px 14px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.ri-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.ri-dot.correct { background: var(--green); }
+.ri-dot.wrong { background: var(--red); }
+.ri-body { flex: 1; }
+.ri-event { font-size: 13px; font-weight: 500; margin-bottom: 3px; line-height: 1.4; }
+.ri-row { display: flex; gap: 14px; font-size: 11px; flex-wrap: wrap; }
+.ri-correct { color: var(--green); font-weight: 500; }
+.ri-user { color: var(--ink3); }
+.ri-user.ok { color: var(--green); }
+.ri-user.ng { color: var(--red); }
+
+.result-btns { display: flex; flex-direction: column; gap: 10px; }
+.retry-btn {
+  padding: 15px;
+  border-radius: var(--r);
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(139,69,19,.3);
+  transition: all .15s;
+}
+.retry-btn:hover { background: #7A3A0F; transform: translateY(-1px); }
+.home-btn {
+  padding: 14px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--ink2);
+  transition: all .15s;
+}
+.home-btn:hover { border-color: var(--accent-mid); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ HOME SCREEN ═══ -->
+  <div class="screen active" id="homeScreen">
+    <div class="home-header">
+      <div class="home-icon">📖</div>
+      <h1 class="home-title">日本歴史　年号テスト</h1>
+      <p class="home-sub">出来事が起きた年号を答えよう<br>1セット10〜13問</p>
+    </div>
+
+    <div class="section-label">テスト を選ぼう</div>
+    <div class="test-grid" id="testGrid"></div>
+    <button class="start-btn" id="startBtn" onclick="startQuiz()">テストを選択してください</button>
+
+    <div class="bottom-grid">
+      <div class="bottom-card" onclick="startDrill()">
+        <div class="bc-icon">🔥</div>
+        <div class="bc-title">苦手ドリル</div>
+        <div class="bc-sub" id="drillSub">苦手問題がまだありません</div>
+      </div>
+      <div class="bottom-card" onclick="showHistory()">
+        <div class="bc-icon">📊</div>
+        <div class="bc-title">学習きろく</div>
+        <div class="bc-sub" id="histSub">まだありません</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ QUIZ SCREEN ═══ -->
+  <div class="screen" id="quizScreen">
+    <div class="quiz-hdr">
+      <button class="back-btn" onclick="goHome()">← 戻る</button>
+      <div class="quiz-title-wrap">
+        <div class="quiz-title" id="quizTitleTxt"></div>
+        <div class="quiz-era" id="quizEraTxt"></div>
+      </div>
+      <div class="quiz-prog-txt" id="quizProgTxt"></div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+
+    <div class="question-card">
+      <div class="q-era-badge" id="qEraBadge"></div>
+      <div class="q-event" id="qEvent"></div>
+      <div class="q-hint" id="qHint"></div>
+    </div>
+
+    <div class="answer-section">
+      <div class="answer-label">年号を入力してください</div>
+      <div class="year-input-wrap">
+        <input type="number" class="year-input" id="yearInput"
+          placeholder="" min="0" max="2000"
+          oninput="onYearInput()" onkeydown="onKey(event)">
+        <span class="year-suffix">年</span>
+      </div>
+    </div>
+
+    <div class="result-panel" id="resultPanel">
+      <div class="rp-top">
+        <div class="rp-badge" id="rpBadge"></div>
+        <div class="rp-year" id="rpYear"></div>
+      </div>
+      <div class="rp-detail" id="rpDetail"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="check-btn" id="checkBtn" onclick="checkAnswer()" disabled>答え合わせ</button>
+      <button class="next-btn" id="nextBtn" onclick="nextQ()">次の問題 →</button>
+    </div>
+  </div>
+
+  <!-- ═══ RESULT SCREEN ═══ -->
+  <div class="screen" id="resultScreen">
+    <div class="result-screen-inner">
+      <div class="result-top">
+        <div class="score-ring" id="scoreRing">
+          <svg viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="58" stroke="#EAE6DD"/>
+            <circle cx="64" cy="64" r="58" id="scoreArc"
+              stroke="#8B4513" stroke-dasharray="0 364.4"/>
+          </svg>
+          <div class="score-pct" id="scorePct"></div>
+          <div class="score-frac" id="scoreFrac"></div>
+        </div>
+        <div class="result-grade" id="resultGrade"></div>
+        <div class="result-msg" id="resultMsg"></div>
+      </div>
+
+      <div class="review-section">
+        <div class="review-label">問題の確認</div>
+        <div id="reviewList"></div>
+      </div>
+
+      <div class="result-btns">
+        <button class="retry-btn" onclick="retryQuiz()">もう一度挑戦する</button>
+        <button class="home-btn" onclick="goHome()">テスト選択に戻る</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TESTS = [
+  {id:1, label:'テスト1', era:'弥生〜平安', qs:[
+    {event:'邪馬台国の卑弥呼が魏に使者を送る', year:239, era:'弥生時代', hint:'魏志倭人伝に記録されている'},
+    {event:'大化の改新（乙巳の変）', year:645, era:'飛鳥時代', hint:'中大兄皇子と中臣鎌足が蘇我氏を滅ぼす'},
+    {event:'壬申の乱', year:672, era:'飛鳥時代', hint:'大海人皇子が勝利し天武天皇となる'},
+    {event:'平城京への遷都', year:710, era:'奈良時代', hint:'元明天皇が奈良に都を移す'},
+    {event:'聖武天皇が大仏建立の詔を出す', year:743, era:'奈良時代', hint:'東大寺の大仏のもととなる詔'},
+    {event:'平安京への遷都', year:794, era:'平安時代', hint:'桓武天皇が京都に都を移す'},
+    {event:'藤原道長が摂政となる', year:1016, era:'平安時代', hint:'「この世をば」の和歌で有名'},
+    {event:'院政の始まり（白河上皇）', year:1086, era:'平安時代', hint:'白河天皇が譲位後も実権を握る'},
+    {event:'平治の乱', year:1159, era:'平安時代', hint:'源義朝が敗れ平清盛が台頭'},
+    {event:'平清盛が太政大臣に就任', year:1167, era:'平安時代', hint:'武士として初めて太政大臣となる'},
+    {event:'壇ノ浦の戦い・平氏滅亡', year:1185, era:'平安時代末', hint:'源義経が活躍した海戦'},
+  ]},
+  {id:2, label:'テスト2', era:'鎌倉〜室町', qs:[
+    {event:'源頼朝が征夷大将軍に就任（鎌倉幕府成立）', year:1192, era:'鎌倉時代', hint:'「いい国つくろう鎌倉幕府」'},
+    {event:'承久の乱', year:1221, era:'鎌倉時代', hint:'後鳥羽上皇が幕府に挑む'},
+    {event:'御成敗式目（貞永式目）の制定', year:1232, era:'鎌倉時代', hint:'北条泰時が制定した武家法'},
+    {event:'元寇（文永の役）', year:1274, era:'鎌倉時代', hint:'フビライ・ハンの第一次日本侵攻'},
+    {event:'元寇（弘安の役）', year:1281, era:'鎌倉時代', hint:'フビライ・ハンの第二次日本侵攻'},
+    {event:'鎌倉幕府の滅亡', year:1333, era:'鎌倉時代末', hint:'新田義貞が鎌倉を攻める'},
+    {event:'建武の新政', year:1334, era:'南北朝時代', hint:'後醍醐天皇による天皇中心の政治'},
+    {event:'足利尊氏が征夷大将軍に就任（室町幕府成立）', year:1338, era:'室町時代', hint:'尊氏が幕府を京都に開く'},
+    {event:'南北朝の合一', year:1392, era:'室町時代', hint:'足利義満が南北朝を統一'},
+    {event:'日明貿易（勘合貿易）の開始', year:1404, era:'室町時代', hint:'足利義満が明との貿易を始める'},
+    {event:'応仁の乱の始まり', year:1467, era:'室町時代', hint:'11年間続いた大乱'},
+    {event:'山城国一揆', year:1485, era:'室町時代', hint:'国人・農民が守護大名を追い出す'},
+  ]},
+  {id:3, label:'テスト3', era:'安土桃山〜江戸', qs:[
+    {event:'長篠の戦い', year:1575, era:'安土桃山時代', hint:'織田信長が鉄砲を大量使用'},
+    {event:'本能寺の変', year:1582, era:'安土桃山時代', hint:'明智光秀が織田信長を討つ'},
+    {event:'刀狩令', year:1588, era:'安土桃山時代', hint:'豊臣秀吉が農民の武器を没収'},
+    {event:'文禄の役（朝鮮出兵・第一次）', year:1592, era:'安土桃山時代', hint:'豊臣秀吉の朝鮮侵攻'},
+    {event:'関ヶ原の戦い', year:1600, era:'安土桃山時代', hint:'東軍と西軍の天下分け目の戦い'},
+    {event:'徳川家康が征夷大将軍に就任（江戸幕府成立）', year:1603, era:'江戸時代', hint:'家康・江戸に幕府を開く'},
+    {event:'大阪夏の陣・豊臣氏滅亡', year:1615, era:'江戸時代', hint:'淀殿と豊臣秀頼が自害'},
+    {event:'参勤交代の制度化', year:1635, era:'江戸時代', hint:'徳川家光が制度として確立'},
+    {event:'島原の乱', year:1637, era:'江戸時代', hint:'天草四郎を首領とするキリスト教徒の反乱'},
+    {event:'生類憐みの令', year:1685, era:'江戸時代', hint:'徳川綱吉が動物保護のために発令'},
+    {event:'享保の改革', year:1716, era:'江戸時代', hint:'徳川吉宗による幕政改革'},
+    {event:'ペリーが浦賀に来航', year:1853, era:'江戸時代末', hint:'黒船来航・開国を迫る'},
+  ]},
+  {id:4, label:'テスト4', era:'江戸末期〜明治', qs:[
+    {event:'日米和親条約の締結', year:1854, era:'江戸時代末', hint:'下田・箱館の二港を開港'},
+    {event:'安政の大獄', year:1858, era:'江戸時代末', hint:'井伊直弼が尊攘派を弾圧'},
+    {event:'桜田門外の変', year:1860, era:'江戸時代末', hint:'水戸藩士らが井伊直弼を暗殺'},
+    {event:'薩長同盟', year:1866, era:'江戸時代末', hint:'坂本龍馬が仲立ちをする'},
+    {event:'大政奉還', year:1867, era:'江戸時代末', hint:'徳川慶喜が政権を朝廷に返す'},
+    {event:'明治維新・王政復古の大号令', year:1868, era:'明治時代', hint:'明治元年のはじまり'},
+    {event:'廃藩置県', year:1871, era:'明治時代', hint:'藩を廃止して府県を設置'},
+    {event:'西南戦争', year:1877, era:'明治時代', hint:'西郷隆盛を首領とする士族の反乱'},
+    {event:'大日本帝国憲法の発布', year:1889, era:'明治時代', hint:'伊藤博文が中心となり起草'},
+    {event:'日清戦争の開戦', year:1894, era:'明治時代', hint:'朝鮮半島をめぐる日清の対立'},
+    {event:'下関条約の締結', year:1895, era:'明治時代', hint:'日清戦争終結・台湾割譲'},
+    {event:'日英同盟の締結', year:1902, era:'明治時代', hint:'ロシアへの対抗を目的とする'},
+    {event:'日露戦争の開戦', year:1904, era:'明治時代', hint:'旅順・奉天・日本海海戦'},
+  ]},
+  {id:5, label:'テスト5', era:'明治後期〜大正', qs:[
+    {event:'ポーツマス条約の締結', year:1905, era:'明治時代', hint:'日露戦争終結・樺太南部割譲'},
+    {event:'韓国併合', year:1910, era:'明治時代', hint:'日本が朝鮮を植民地化'},
+    {event:'明治天皇崩御', year:1912, era:'明治時代末', hint:'明治時代の終わり・大正へ'},
+    {event:'第一次世界大戦参戦', year:1914, era:'大正時代', hint:'日本はドイツに宣戦布告'},
+    {event:'米騒動', year:1918, era:'大正時代', hint:'シベリア出兵による米価高騰'},
+    {event:'関東大震災', year:1923, era:'大正時代', hint:'マグニチュード7.9の大地震'},
+    {event:'普通選挙法の成立', year:1925, era:'大正時代', hint:'25歳以上の男性に選挙権'},
+    {event:'満州事変', year:1931, era:'昭和時代', hint:'関東軍が満州を占領'},
+    {event:'五・一五事件', year:1932, era:'昭和時代', hint:'犬養毅首相が海軍青年将校に暗殺'},
+    {event:'二・二六事件', year:1936, era:'昭和時代', hint:'陸軍青年将校によるクーデター未遂'},
+    {event:'日中戦争の始まり（盧溝橋事件）', year:1937, era:'昭和時代', hint:'中国との全面戦争へ'},
+    {event:'太平洋戦争の開戦（真珠湾攻撃）', year:1941, era:'昭和時代', hint:'ハワイの米海軍基地を奇襲'},
+  ]},
+  {id:6, label:'テスト6', era:'昭和〜戦後', qs:[
+    {event:'ミッドウェー海戦', year:1942, era:'昭和時代', hint:'日本海軍が大敗・戦局の転換点'},
+    {event:'広島への原子爆弾投下', year:1945, era:'昭和時代', hint:'8月6日・人類初の核攻撃'},
+    {event:'終戦（ポツダム宣言受諾）', year:1945, era:'昭和時代', hint:'8月15日・玉音放送'},
+    {event:'日本国憲法の公布', year:1946, era:'昭和時代', hint:'翌年5月3日施行'},
+    {event:'朝鮮戦争の勃発', year:1950, era:'昭和時代', hint:'特需景気で日本経済が回復'},
+    {event:'サンフランシスコ平和条約の締結', year:1951, era:'昭和時代', hint:'日本が主権を回復'},
+    {event:'自衛隊の発足', year:1954, era:'昭和時代', hint:'保安隊が改組される'},
+    {event:'東京オリンピックの開催', year:1964, era:'昭和時代', hint:'日本の高度経済成長の象徴'},
+    {event:'日中国交正常化', year:1972, era:'昭和時代', hint:'田中角栄首相が中国を訪問'},
+    {event:'第一次石油ショック', year:1973, era:'昭和時代', hint:'オイルショックによる物価急騰'},
+    {event:'日中平和友好条約の締結', year:1978, era:'昭和時代', hint:'日中関係の法的基盤を確立'},
+    {event:'昭和天皇崩御', year:1989, era:'昭和時代末', hint:'昭和64年・平成元年へ'},
+  ]},
+];
+
+// ── State ──
+let selectedTest = null;
+let currentQs = [];
+let qIdx = 0;
+let score = 0;
+let answered = false;
+let userAnswers = [];
+let wrongQs = [];
+let sessionHistory = [];
+let bestScores = {};
+let isDrill = false;
+
+// ── Init ──
+function init() {
+  const grid = document.getElementById('testGrid');
+  grid.innerHTML = '';
+  TESTS.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'test-card';
+    d.id = 'tc' + t.id;
+    const best = bestScores[t.id];
+    let bestHtml = '';
+    if (best) bestHtml = `<div class="tc-best">ベスト: ${best.correct}/${best.total}問</div>`;
+    const badgeText = best ? `${Math.round(best.correct/best.total*100)}%` : '未挑戦';
+    d.innerHTML = `<div class="tc-num">${t.label}</div><div class="tc-era">${t.era}</div><div class="tc-badge">${badgeText}</div>${bestHtml}`;
+    d.onclick = () => selectTest(t.id);
+    grid.appendChild(d);
+  });
+  document.getElementById('drillSub').textContent =
+    wrongQs.length > 0 ? `${wrongQs.length}問の苦手問題あり` : '苦手問題がまだありません';
+  document.getElementById('histSub').textContent =
+    sessionHistory.length > 0 ? `${sessionHistory.length}回の受験記録` : 'まだありません';
+}
+
+function selectTest(id) {
+  selectedTest = id;
+  document.querySelectorAll('.test-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('tc' + id).classList.add('active');
+  const t = TESTS.find(x => x.id === id);
+  const btn = document.getElementById('startBtn');
+  btn.textContent = `${t.label}（${t.era}）を始める`;
+  btn.className = 'start-btn ready';
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Quiz ──
+function startQuiz() {
+  if (!selectedTest) return;
+  isDrill = false;
+  const t = TESTS.find(x => x.id === selectedTest);
+  currentQs = [...t.qs].sort(() => Math.random() - .5);
+  launchQuiz(t.label, t.era);
+}
+
+function startDrill() {
+  if (wrongQs.length === 0) { alert('苦手問題がまだありません。テストを受けてください。'); return; }
+  isDrill = true;
+  currentQs = [...wrongQs].sort(() => Math.random() - .5);
+  launchQuiz('苦手ドリル', '');
+}
+
+function launchQuiz(title, era) {
+  qIdx = 0; score = 0; answered = false; userAnswers = [];
+  document.getElementById('quizTitleTxt').textContent = title;
+  document.getElementById('quizEraTxt').textContent = era;
+  showScreen('quizScreen');
+  showQ();
+}
+
+function showQ() {
+  const q = currentQs[qIdx];
+  answered = false;
+  document.getElementById('qEraBadge').textContent = q.era;
+  document.getElementById('qEvent').textContent = q.event;
+  document.getElementById('qHint').textContent = 'ヒント: ' + q.hint;
+  document.getElementById('quizProgTxt').textContent = `${qIdx + 1} / ${currentQs.length}`;
+  document.getElementById('progFill').style.width = `${(qIdx / currentQs.length) * 100}%`;
+  const inp = document.getElementById('yearInput');
+  inp.value = '';
+  inp.className = 'year-input';
+  document.getElementById('resultPanel').style.display = 'none';
+  document.getElementById('resultPanel').className = 'result-panel';
+  const cb = document.getElementById('checkBtn');
+  cb.style.display = 'block';
+  cb.disabled = true;
+  document.getElementById('nextBtn').style.display = 'none';
+  setTimeout(() => inp.focus(), 100);
+}
+
+function onYearInput() {
+  const v = document.getElementById('yearInput').value;
+  document.getElementById('checkBtn').disabled = v.length < 3;
+}
+
+function onKey(e) { if (e.key === 'Enter') checkAnswer(); }
+
+function checkAnswer() {
+  if (answered) return;
+  const q = currentQs[qIdx];
+  const val = parseInt(document.getElementById('yearInput').value);
+  if (isNaN(val)) return;
+  answered = true;
+  const diff = Math.abs(val - q.year);
+  const isCorrect = diff === 0;
+  const isClose = diff <= 5 && diff > 0;
+  userAnswers.push({ q, userYear: val, correct: isCorrect });
+
+  const inp = document.getElementById('yearInput');
+  inp.className = 'year-input ' + (isCorrect ? 'correct' : isClose ? 'close' : 'wrong');
+
+  const panel = document.getElementById('resultPanel');
+  panel.style.display = 'block';
+  panel.className = 'result-panel ' + (isCorrect ? 'correct' : isClose ? 'close' : 'wrong');
+  document.getElementById('rpBadge').textContent = isCorrect ? '✓ 正解！' : isClose ? `△ 惜しい！（${diff}年差）` : '✗ 不正解';
+  document.getElementById('rpYear').textContent = `正解：${q.year}年`;
+  document.getElementById('rpDetail').textContent = q.hint;
+
+  if (isCorrect) { score++; }
+  else if (!wrongQs.find(w => w.event === q.event)) { wrongQs.push(q); }
+
+  document.getElementById('checkBtn').style.display = 'none';
+  const nb = document.getElementById('nextBtn');
+  nb.style.display = 'block';
+  nb.textContent = qIdx < currentQs.length - 1 ? '次の問題 →' : '結果を見る';
+}
+
+function nextQ() {
+  qIdx++;
+  if (qIdx >= currentQs.length) { showResult(); }
+  else { showQ(); }
+}
+
+// ── Result ──
+function showResult() {
+  const total = currentQs.length;
+  const pct = Math.round(score / total * 100);
+
+  // Score ring
+  const circ = 2 * Math.PI * 58;
+  const dash = circ * pct / 100;
+  document.getElementById('scoreArc').setAttribute('stroke-dasharray', `${dash} ${circ}`);
+  document.getElementById('scoreArc').setAttribute('stroke',
+    pct >= 80 ? '#2D6A4F' : pct >= 60 ? '#8B4513' : '#8B1A1A');
+  document.getElementById('scorePct').textContent = pct + '%';
+  document.getElementById('scoreFrac').textContent = `${score}/${total}問`;
+
+  const grades = [[90,'優秀！','完璧な年号の知識です'],[70,'良好','よく理解できています'],[50,'合格','もう少し復習しましょう'],[0,'要復習','苦手ドリルで練習しましょう']];
+  const g = grades.find(x => pct >= x[0]);
+  document.getElementById('resultGrade').textContent = g[1];
+  document.getElementById('resultMsg').textContent = g[2];
+
+  // Review list
+  const rl = document.getElementById('reviewList');
+  rl.innerHTML = '';
+  userAnswers.forEach(({ q, userYear, correct }) => {
+    const el = document.createElement('div');
+    el.className = 'review-item';
+    el.innerHTML = `
+      <div class="ri-dot ${correct ? 'correct' : 'wrong'}"></div>
+      <div class="ri-body">
+        <div class="ri-event">${q.event}</div>
+        <div class="ri-row">
+          <span class="ri-correct">正解: ${q.year}年</span>
+          <span class="ri-user ${correct ? 'ok' : 'ng'}">あなた: ${userYear}年</span>
+        </div>
+      </div>`;
+    rl.appendChild(el);
+  });
+
+  // Save scores
+  if (!isDrill && selectedTest) {
+    const prev = bestScores[selectedTest];
+    if (!prev || score > prev.correct) bestScores[selectedTest] = { correct: score, total };
+  }
+  sessionHistory.push({ label: isDrill ? '苦手ドリル' : TESTS.find(t => t.id === selectedTest)?.label, score, total, pct, date: new Date().toLocaleDateString('ja-JP') });
+
+  showScreen('resultScreen');
+  init();
+}
+
+function retryQuiz() {
+  if (isDrill) startDrill(); else startQuiz();
+}
+
+function goHome() {
+  showScreen('homeScreen');
+  init();
+}
+
+function showHistory() {
+  if (sessionHistory.length === 0) { alert('まだ受験記録がありません。'); return; }
+  alert('学習きろく\n\n' + sessionHistory.map(h => `${h.date}　${h.label}: ${h.score}/${h.total}問（${h.pct}%）`).join('\n'));
+}
+
+init();
+</script>
+</body>
+</html>
