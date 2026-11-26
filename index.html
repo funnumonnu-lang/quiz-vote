@@ -325,7 +325,8 @@ const scored=qi=>!isPoll()&&!!((S.answers&&S.answers.correct||[])[qi]||[]).lengt
 const anyScored=()=>!isPoll()&&(S.config.questions||[]).some((q,i)=>scored(i));
 const modeWord=(a,b)=>isPoll()?a:b;
 
-const STROKE=['M3,4 H25','M14,4 V28','M3,16 H14','M22,16 V28','M3,28 H27'];
+// 「正」の五画：上の横 → 中央の長い縦 → 中央から右へ出る横 → 左の短い縦 → 下の横
+const STROKE=['M3,4 H27','M16,4 V28','M16,16 H26','M8,13 V28','M3,28 H27'];
 function tallySVG(n){
   let out='';
   for(let g=0;g<Math.ceil(n/5);g++){
