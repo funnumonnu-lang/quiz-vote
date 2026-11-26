@@ -170,6 +170,17 @@
   textarea.ex{width:100%;background:#fff;border:1px solid var(--line);border-radius:7px;
     padding:9px 11px;font-size:13.5px;line-height:1.6;resize:vertical;min-height:56px}
   textarea.ex:focus{outline:2px solid var(--indigo);outline-offset:-1px;border-color:transparent}
+  /* 種類の切り替え */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .seg-b{border:0;background:none;padding:7px 14px;color:var(--ink-3);font-weight:600;font-size:13px;line-height:1.25}
+  .seg-b small{display:block;font-size:10px;font-weight:400;letter-spacing:.04em;opacity:.8}
+  .seg-b+.seg-b{border-left:1px solid var(--line)}
+  .seg-b.on{background:var(--indigo);color:#fff}
+  .seg-b:disabled{opacity:.45;cursor:not-allowed}
+  .btn .sub{display:block;font-size:10.5px;font-weight:400;letter-spacing:.02em;opacity:.65;margin-top:1px}
+  .kind-tag{font-size:10.5px;letter-spacing:.1em;border:1px solid currentColor;border-radius:4px;
+    padding:1px 6px;color:var(--ink-3);white-space:nowrap}
+  .kind-tag.poll{color:var(--mustard);background:var(--mustard-soft)}
   .center{text-align:center}
   .pulse{display:inline-block;width:7px;height:7px;border-radius:99px;background:var(--indigo);margin-right:7px;animation:p 1.6s infinite}
   .offline{background:#fbeeeb;border-color:#e0c4bd}
@@ -308,6 +319,11 @@ function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on');
 function setStatus(m){ toast(m); const s=$('#stat'); if(s) s.textContent=m; }
 function hash(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h*33)^str.charCodeAt(i))>>>0; return 'p'+h.toString(36); }
 const same=(a,b)=>{ const x=[...(a||[])].sort().join(','), y=[...(b||[])].sort().join(','); return x===y&&x!==''; };
+// アンケート（正解なし）かどうか。設問ごとに正解が未設定なら、その問も採点しない
+const isPoll=()=>!!(S.config&&S.config.kind==='poll');
+const scored=qi=>!isPoll()&&!!((S.answers&&S.answers.correct||[])[qi]||[]).length;
+const anyScored=()=>!isPoll()&&(S.config.questions||[]).some((q,i)=>scored(i));
+const modeWord=(a,b)=>isPoll()?a:b;
 
 const STROKE=['M3,4 H25','M14,4 V28','M3,16 H14','M22,16 V28','M3,28 H27'];
 function tallySVG(n){
@@ -614,7 +630,10 @@ function screenStart(prefill){
       <div><div class="eyebrow">出題する</div>
         <h2 style="font-size:18px;margin:4px 0 8px">新しい部屋をつくる</h2>
         <p class="tiny">${DEF_Q}問・${DEF_C}択のひな形ができます。設問数も選択肢もあとから変えられます。</p></div>
-      <button class="btn ghost" id="mk">部屋をつくる</button>
+      <div class="row">
+        <button class="btn ghost" id="mk">クイズをつくる<span class="sub">正解あり・採点する</span></button>
+        <button class="btn ghost" id="mkPoll">アンケートをつくる<span class="sub">正解なし・集計だけ</span></button>
+      </div>
     </div>
     <div class="card pad stack" style="margin-top:14px">
       <div><div class="eyebrow">過去の部屋</div>
@@ -633,17 +652,19 @@ function screenStart(prefill){
     <p class="tiny center" style="margin:22px 0"><a href="#" id="rst" style="color:var(--ink-3)">接続先を変更する</a></p>`:''}`;
 
   const rstb=$('#rst'); if(rstb) rstb.onclick=e=>{e.preventDefault();screenSetup();};
-  const mkb=$('#mk'); if(mkb) mkb.onclick=async()=>{
-    mkb.disabled=true; mkb.textContent='作成中…';
+  const makeRoom=async(btn,kind)=>{
+    const keep=btn.innerHTML; btn.disabled=true; btn.textContent='作成中…';
     try{
-      const r=await call('createRoom',{nq:DEF_Q,nc:DEF_C},true);
+      const r=await call('createRoom',{nq:DEF_Q,nc:DEF_C,kind:kind},true);
       if(!r.ok) throw new Error(r.error||'失敗');
       S.role='host'; S.room=r.room; S.hostKey=r.hostKey;
       S.config=r.config; S.answers={correct:r.correct};
       S.tab='edit'; saveSession(); rememberRoom(r.room,r.hostKey,r.config.title);
       startPoll(); renderHost();
-    }catch(e){ mkb.disabled=false; mkb.textContent='部屋をつくる'; toast('部屋をつくれませんでした：'+e.message); }
+    }catch(e){ btn.disabled=false; btn.innerHTML=keep; toast('部屋をつくれませんでした：'+e.message); }
   };
+  const mkb=$('#mk'); if(mkb) mkb.onclick=()=>makeRoom(mkb,'quiz');
+  const mkp=$('#mkPoll'); if(mkp) mkp.onclick=()=>makeRoom(mkp,'poll');
 
   // 過去の部屋
   if(canCreate){
@@ -715,6 +736,7 @@ async function renderRoomList(){
         <div style="min-width:0;flex:1">
           <span style="font-family:var(--mono);letter-spacing:.14em;font-weight:600">${v.room}</span>
           <span style="font-size:14px"> ${esc(v.title||'（無題）')}</span>
+          <span class="kind-tag ${v.kind==='poll'?'poll':''}">${v.kind==='poll'?'アンケート':'クイズ'}</span>
           <div class="tiny">${phaseText(v)} ／ ${v.questions}問 ／ 参加 ${v.peers}人 ／ ${fmtDate(v.at)}</div>
         </div>
         <div class="row" style="gap:6px;flex:none">
@@ -767,7 +789,7 @@ function renderBar(){
              closed:'第'+(c.cur+1)+'問 締切',results:'第'+(c.cur+1)+'問 発表中'}[c.qphase]; }
   }
   $('#bar').innerHTML=`
-    <span class="brand">投票クイズ</span>
+    <span class="brand">${isPoll()?'アンケート':'投票クイズ'}</span>
     <span class="phase ${cls}">${label}</span>
     <span class="bar-sp"></span>
     ${S.role==='guest'?`<span class="tiny" style="max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(S.name)}</span>`:''}
@@ -809,7 +831,16 @@ function paneEditor(){
         <span class="tiny">全設問の選択肢数</span><input type="number" id="nc" min="2" max="10" value="${DEF_C}" ${locked?'disabled':''}>
         <button class="btn ghost sm" id="applyC" ${locked?'disabled':''}>まとめて反映</button>
       </div>
-      <p class="tiny">「まとめて反映」は全設問の選択肢数をそろえます。設問ごとの増減は各カードで。正解は複数選べます。</p>
+      <div class="row">
+        <span class="tiny">種類</span>
+        <div class="seg">
+          <button class="seg-b ${isPoll()?'':'on'}" data-kind="quiz" ${locked?'disabled':''}>クイズ<small>正解あり</small></button>
+          <button class="seg-b ${isPoll()?'on':''}" data-kind="poll" ${locked?'disabled':''}>アンケート<small>正解なし</small></button>
+        </div>
+      </div>
+      <p class="tiny">${isPoll()
+        ? '正解を設定しない投票です。発表では集計だけを出し、○×も順位も付けません。'
+        : '「まとめて反映」は全設問の選択肢数をそろえます。正解は複数選べます。正解を空のままにした設問は、その問だけ採点しません。'}</p>
     </div>
     ${locked?'':`<div class="drop" id="dropbox" style="margin-bottom:16px">
       <h3>PowerPointから読み込む</h3>
@@ -833,6 +864,7 @@ function paneEditor(){
 }
 
 function qCard(q,i,cor,locked){
+  const poll=isPoll();
   return `<div class="card q" data-q="${i}">
     <div class="q-head">
       <div class="q-no">Q${String(i+1).padStart(2,'0')}</div>
@@ -844,18 +876,20 @@ function qCard(q,i,cor,locked){
         <div class="ch" data-c="${j}">
           <span class="ch-key">${KEYS[j]}</span>
           <input type="text" class="ctext" value="${esc(ch)}" placeholder="選択肢" ${locked?'disabled':''}>
-          <label class="mark ${cor.includes(j)?'on':''}">
+          ${poll?'':`<label class="mark ${cor.includes(j)?'on':''}">
             <input type="checkbox" class="cor" ${cor.includes(j)?'checked':''} ${locked?'disabled':''}>正解
-          </label>
+          </label>`}
           <button class="x delC" title="この選択肢を削除" ${locked?'disabled':''}>×</button>
         </div>`).join('')}
       <div class="row" style="margin-top:10px">
         <button class="btn ghost sm addC" ${locked?'disabled':''}>＋ 選択肢</button>
-        <span class="tiny multi-note">${q.multi?'複数選択で回答':'ひとつだけ回答'}</span>
+        ${poll?`<label class="mark ${q.multi?'on':''}">
+          <input type="checkbox" class="multi" ${q.multi?'checked':''} ${locked?'disabled':''}>複数選択できる
+        </label>`:`<span class="tiny multi-note">${q.multi?'複数選択で回答':'ひとつだけ回答'}</span>`}
       </div>
       <div style="margin-top:12px">
-        <div class="eyebrow" style="margin-bottom:5px">解説（結果発表のときに出ます・空欄可）</div>
-        <textarea class="ex" rows="2" placeholder="なぜその答えになるのか" ${locked?'disabled':''}>${esc(q.explain||'')}</textarea>
+        <div class="eyebrow" style="margin-bottom:5px">${poll?'補足（結果を出すときに添えます・空欄可）':'解説（結果発表のときに出ます・空欄可）'}</div>
+        <textarea class="ex" rows="2" placeholder="${poll?'この設問のねらいや補足':'なぜその答えになるのか'}" ${locked?'disabled':''}>${esc(q.explain||'')}</textarea>
       </div></div></div>`;
 }
 
@@ -863,6 +897,16 @@ function bindEditor(locked){
   if(locked) return;
   const c=S.config,a=S.answers,pane=$('#pane');
   $('#ttl').oninput=e=>{c.title=e.target.value;queueSaveConfig();};
+  $('#pane').querySelectorAll('.seg-b').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.kind;
+    if(k===(c.kind||'quiz')) return;
+    if(k==='poll'&&a.correct.some(x=>x&&x.length)&&
+       !confirm('アンケートに切り替えます。設定した正解は残りますが、結果には出ません。よろしいですか？')) return;
+    c.kind=k;
+    c.questions.forEach((q,i)=>{ q.multi=(a.correct[i]||[]).length>1||(k==='poll'&&q.multi); });
+    if(c.title==='投票クイズ'||c.title==='アンケート') c.title=(k==='poll')?'アンケート':'投票クイズ';
+    saveConfig(); renderHost();            // ヘッダーの表示も切り替える
+  });
   $('#applyC').onclick=()=>{
     const nq=Math.max(1,Math.min(50,+$('#nq').value||DEF_Q));
     const nc=Math.max(2,Math.min(10,+$('#nc').value||DEF_C));
@@ -875,7 +919,7 @@ function bindEditor(locked){
       while(q.choices.length<nc) q.choices.push('選択肢 '+KEYS[q.choices.length]);
       q.choices.length=nc;
       a.correct[i]=(a.correct[i]||[]).filter(x=>x<nc);
-      q.multi=a.correct[i].length>1;
+      if(!isPoll()) q.multi=a.correct[i].length>1;
     });
     saveConfig(); paneEditor();
   };
@@ -907,6 +951,12 @@ function bindEditor(locked){
     queueSaveConfig();
   });
   pane.addEventListener('change',e=>{
+    if(e.target.classList.contains('multi')){          // アンケートの複数選択
+      const qi=+e.target.closest('[data-q]').dataset.q;
+      c.questions[qi].multi=e.target.checked;
+      e.target.closest('.mark').classList.toggle('on',e.target.checked);
+      queueSaveConfig(); return;
+    }
     if(!e.target.classList.contains('cor')) return;
     const qi=+e.target.closest('[data-q]').dataset.q, ci=+e.target.closest('[data-c]').dataset.c;
     const set=new Set(a.correct[qi]||[]);
@@ -914,7 +964,8 @@ function bindEditor(locked){
     a.correct[qi]=[...set].sort((x,y)=>x-y);
     c.questions[qi].multi=a.correct[qi].length>1;
     e.target.closest('.mark').classList.toggle('on',e.target.checked);
-    e.target.closest('.q').querySelector('.multi-note').textContent=c.questions[qi].multi?'複数選択で回答':'ひとつだけ回答';
+    const note=e.target.closest('.q').querySelector('.multi-note');
+    if(note) note.textContent=c.questions[qi].multi?'複数選択で回答':'ひとつだけ回答';
     queueSaveConfig();
   });
   pane.addEventListener('click',e=>{
@@ -929,7 +980,7 @@ function bindEditor(locked){
       const ci=+e.target.closest('[data-c]').dataset.c;
       q.choices.splice(ci,1);
       a.correct[qi]=(a.correct[qi]||[]).filter(x=>x!==ci).map(x=>x>ci?x-1:x);
-      q.multi=a.correct[qi].length>1;
+      if(!isPoll()) q.multi=a.correct[qi].length>1;
       saveConfig(); paneEditor();
     }
     if(e.target.classList.contains('delQ')){
@@ -957,7 +1008,7 @@ function paneRun(){
   freshPane();
 
   if(c.phase==='edit'){
-    const noCor=S.answers.correct.filter(x=>!x||!x.length).length;
+    const noCor=isPoll()?0:S.answers.correct.filter(x=>!x||!x.length).length;
     $('#pane').innerHTML=`
       <div class="card pad stack" style="margin-bottom:16px">
         <div><div class="eyebrow">配布するもの</div>
@@ -972,7 +1023,7 @@ function paneRun(){
           <div><div class="eyebrow">設問</div><div class="big">${c.questions.length}</div></div>
           <div><div class="eyebrow">参加者</div><div class="big" id="peerN">${S.peers}</div></div>
         </div>
-        ${noCor?`<p class="tiny" style="color:var(--red)">正解が未設定の設問が ${noCor} 問あります。編集タブで設定できます。</p>`:''}
+        ${noCor?`<p class="tiny" style="color:var(--red)">正解が未設定の設問が ${noCor} 問あります。そのままでも進められますが、その問は採点しません。</p>`:''}
       </div>
       <div class="card pad stack">
         <div class="eyebrow">開始</div>
@@ -994,8 +1045,10 @@ function paneRun(){
     $('#pane').innerHTML=`
       <div class="card pad stack" style="margin-bottom:16px">
         <div class="eyebrow">終了</div>
-        <h2 style="font-size:19px">全体成績を発表しました</h2>
-        <p class="muted" style="font-size:14px">参加者の画面にも順位と正答率が出ています。詳しい内訳は「全体の結果」タブで確認できます。</p>
+        <h2 style="font-size:19px">${anyScored()?'全体成績を発表しました':'アンケートを終了しました'}</h2>
+        <p class="muted" style="font-size:14px">${anyScored()
+          ? '参加者の画面にも順位と正答率が出ています。'
+          : '参加者の画面に、自分の回答の一覧が出ています。'}詳しい内訳は「全体の結果」タブで確認できます。</p>
         <div class="row">
           <button class="btn ghost" id="backLive">進行に戻す</button>
           <button class="btn ghost" id="toRes">全体の結果を見る</button>
@@ -1025,7 +1078,9 @@ function paneRun(){
         <span class="phase ${c.qphase}">${stateLabel}</span>
       </div>
       <h2 class="qtext">${esc(q.text)}</h2>
-      <p class="tiny">${q.multi?'複数選択・正解は '+cor.length+' つ':'ひとつだけ選択'}　正解：${cor.length?cor.map(x=>KEYS[x]).join('・'):'未設定'}</p>
+      <p class="tiny">${isPoll()
+        ? (q.multi?'複数選択できる設問':'ひとつだけ選択')
+        : (q.multi?'複数選択・正解は '+cor.length+' つ':'ひとつだけ選択')+'　正解：'+(cor.length?cor.map(x=>KEYS[x]).join('・'):'<span style="color:var(--red)">未設定</span>')}</p>
       <div id="stageBody"></div>
     </div>
 
@@ -1058,7 +1113,7 @@ function paneRun(){
   if(c.qphase==='idle')    ctrl.innerHTML=mk('go','b1','この設問の投票を開ける');
   if(c.qphase==='voting')  ctrl.innerHTML=mk('stop','b1','投票を締め切る');
   if(c.qphase==='closed')  ctrl.innerHTML=mk('primary','b1','結果を発表する')+mk('ghost','b2','投票を再開する');
-  if(c.qphase==='results') ctrl.innerHTML=(last?mk('primary','b1','全体成績を発表する'):mk('primary','b1','次の設問へ'))+mk('ghost','b2','もう一度投票する');
+  if(c.qphase==='results') ctrl.innerHTML=(last?mk('primary','b1',anyScored()?'全体成績を発表する':'アンケートを終わる'):mk('primary','b1','次の設問へ'))+mk('ghost','b2','もう一度投票する');
 
   const b1=$('#b1'),b2=$('#b2');
   if(b1) b1.onclick=async()=>{
@@ -1077,7 +1132,7 @@ function paneRun(){
   }else if(c.qphase!=='idle'){
     $('#stageBody').innerHTML='<hr>'+q.choices.map((ch,j)=>
       `<div class="res-line" style="margin-top:8px"><span class="res-key">${KEYS[j]}</span>
-       <span class="res-text">${esc(ch)}${cor.includes(j)?'<span class="tag">正解</span>':''}</span></div>`).join('');
+       <span class="res-text">${esc(ch)}${(!isPoll()&&cor.includes(j))?'<span class="tag">正解</span>':''}</span></div>`).join('');
   }else{
     $('#stageBody').innerHTML='<p class="tiny" style="margin-top:10px">投票を開けると、参加者の画面に選択肢が出ます。</p>';
   }
@@ -1183,12 +1238,13 @@ function oneResultHTML(qi,opts){
   const t=tallyOne(qi); if(!t) return '';
   const mine=(opts&&opts.mine)||null;
   const max=Math.max(1,...t.counts);
+  const sc=scored(qi);
   return `<div class="row" style="justify-content:space-between;align-items:baseline;margin-top:12px">
       <span class="eyebrow">集計</span>
-      <span class="tiny">回答 ${t.answered}人 ／ 正解 ${t.right}人${t.answered?`（${Math.round(t.right/t.answered*100)}%）`:''}</span>
+      <span class="tiny">回答 ${t.answered}人${sc?` ／ 正解 ${t.right}人${t.answered?`（${Math.round(t.right/t.answered*100)}%）`:''}`:''}</span>
     </div>`+
     t.q.choices.map((ch,j)=>{
-      const n=t.counts[j],isC=t.cor.includes(j),isMine=mine&&mine.includes(j);
+      const n=t.counts[j],isC=sc&&t.cor.includes(j),isMine=mine&&mine.includes(j);
       const pct=t.answered?Math.round(n/t.answered*100):0;
       return `<div class="res-row ${isC?'correct':''}">
         <div class="res-line"><span class="res-key">${KEYS[j]}</span>
@@ -1198,7 +1254,7 @@ function oneResultHTML(qi,opts){
         <div class="tally" style="color:${isC?'var(--green)':'var(--indigo)'}">${n?tallySVG(n):''}</div>
       </div>`;
     }).join('')+
-    (t.q.explain?`<div class="note"><b>解説</b>${esc(t.q.explain)}</div>`:'');
+    (t.q.explain?`<div class="note"><b>${isPoll()?'補足':'解説'}</b>${esc(t.q.explain)}</div>`:'');
 }
 
 function scoreBoard(){
@@ -1208,7 +1264,9 @@ function scoreBoard(){
     c.questions.forEach((q,i)=>{
       if(!q) return;
       const p=(v.answers||{})[i];
-      if(p&&p.length){a++; if(same(p,cor[i]))r++;}
+      if(!p||!p.length) return;
+      a++;
+      if(scored(i)&&same(p,cor[i])) r++;
     });
     return {name:v.name||'(名前なし)',r,a};
   }).sort((x,y)=>y.r-x.r);
@@ -1229,9 +1287,10 @@ function paneAllResults(){
   }
   const revealed=(c.revealed||[]).slice().sort((a,b)=>a-b);
   const list=S.role==='host'?c.questions.map((q,i)=>i):revealed;
+  const rank=anyScored();
   const scores=scoreBoard();
   let totA=0,totR=0;
-  list.forEach(i=>{ const t=tallyOne(i); if(t){totA+=t.answered;totR+=t.right;} });
+  list.forEach(i=>{ if(!scored(i)) return; const t=tallyOne(i); if(t){totA+=t.answered;totR+=t.right;} });
 
   $('#pane').innerHTML=`
     <div class="card pad stack" style="margin-bottom:16px">
@@ -1242,7 +1301,8 @@ function paneAllResults(){
       <div class="row" style="gap:22px">
         <div><div class="eyebrow">参加者</div><div class="big">${S.votes.length}</div></div>
         <div><div class="eyebrow">発表済み</div><div class="big">${revealed.length} / ${c.questions.length}</div></div>
-        <div><div class="eyebrow">全体正答率</div><div class="big">${totA?Math.round(totR/totA*100)+'%':'—'}</div></div>
+        ${rank?`<div><div class="eyebrow">全体正答率</div><div class="big">${totA?Math.round(totR/totA*100)+'%':'—'}</div></div>`:
+          `<div><div class="eyebrow">延べ回答</div><div class="big">${S.votes.reduce((m,v)=>m+Object.values(v.answers||{}).filter(x=>x&&x.length).length,0)}</div></div>`}
       </div>
     </div>
     ${list.map(i=>{
@@ -1257,23 +1317,27 @@ function paneAllResults(){
     }).join('')}
     ${scores.length?`<div class="card pad" style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">参加者別</div>
-      <table><thead><tr><th>表示名</th><th style="text-align:right">正解</th><th style="text-align:right">回答</th></tr></thead>
-      <tbody>${scores.map(s=>`<tr><td>${esc(s.name)}</td><td class="n">${s.r}</td><td class="n">${s.a}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+      <table><thead><tr><th>表示名</th>${rank?'<th style="text-align:right">正解</th>':''}<th style="text-align:right">回答</th></tr></thead>
+      <tbody>${(rank?scores:scores.slice().sort((x,y)=>y.a-x.a)).map(s=>
+        `<tr><td>${esc(s.name)}</td>${rank?`<td class="n">${s.r}</td>`:''}<td class="n">${s.a}</td></tr>`).join('')}</tbody></table></div>`:''}`;
   const rl=$('#reload'); if(rl) rl.onclick=async()=>{ await loadResults(); paneAllResults(); setStatus('最新にしました'); };
   const cs=$('#csv'); if(cs) cs.onclick=exportCSV;
 }
 
 function exportCSV(){
   const c=S.config,cor=S.answers.correct;
-  const rows=[['設問No','設問','選択肢','正解','得票','回答者数','解説']];
+  const rank=anyScored();
+  const rows=[rank?['設問No','設問','選択肢','正解','得票','回答者数','解説']
+                  :['設問No','設問','選択肢','得票','回答者数','補足']];
   c.questions.forEach((q,i)=>{
     if(!q) return;
     const t=tallyOne(i);
-    q.choices.forEach((ch,j)=>rows.push([i+1,q.text,ch,(cor[i]||[]).includes(j)?'○':'',
-      t.counts[j],t.answered,j===0?(q.explain||''):'']));
+    q.choices.forEach((ch,j)=>rows.push(rank
+      ? [i+1,q.text,ch,(scored(i)&&(cor[i]||[]).includes(j))?'○':'',t.counts[j],t.answered,j===0?(q.explain||''):'']
+      : [i+1,q.text,ch,t.counts[j],t.answered,j===0?(q.explain||''):'']));
   });
-  rows.push([]); rows.push(['表示名','正解数','回答数']);
-  scoreBoard().forEach(s=>rows.push([s.name,s.r,s.a]));
+  rows.push([]); rows.push(rank?['表示名','正解数','回答数']:['表示名','回答数']);
+  scoreBoard().forEach(s=>rows.push(rank?[s.name,s.r,s.a]:[s.name,s.a]));
   const csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"').join(',')).join('\r\n');
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   const a=document.createElement('a'); a.href=url; a.download=c.title+'_'+S.room+'.csv'; a.click();
@@ -1341,10 +1405,11 @@ function renderGuest(){
 
   // 発表
   const cor=(S.answers.correct||[])[i]||[];
+  const sc=scored(i);
   const ok=same(mine,cor);
   $('#app').innerHTML=netbarHTML()+`
     <div style="margin-top:14px">
-      ${mine.length?`<div class="verdict ${ok?'ok':'ng'}">${ok?'○　正解':'×　不正解'}</div>`:''}
+      ${sc&&mine.length?`<div class="verdict ${ok?'ok':'ng'}">${ok?'○　正解':'×　不正解'}</div>`:''}
       <div class="card stage">
         <div class="eyebrow">第 ${i+1} 問 / 全 ${c.total} 問</div>
         <h2 class="qtext">${esc(q.text)}</h2>
@@ -1358,21 +1423,30 @@ function renderGuest(){
 function renderGuestFinal(){
   const c=S.config,cor=S.answers.correct||[];
   const revealed=(c.revealed||[]).slice().sort((a,b)=>a-b);
+  const graded=revealed.filter(i=>scored(i));
+  const myN=Object.values(S.my).filter(x=>x&&x.length).length;
   let mine=0;
-  revealed.forEach(i=>{ if(same(S.my[i],cor[i])) mine++; });
+  graded.forEach(i=>{ if(same(S.my[i],cor[i])) mine++; });
   const board=scoreBoard();
   const rank=board.findIndex(s=>s.name===S.name)+1;
   $('#app').innerHTML=netbarHTML()+`
     <div class="card pad center stack" style="margin-top:16px">
       <div class="eyebrow">おつかれさまでした</div>
-      <h1 style="font-size:26px">${mine} / ${revealed.length} 問 正解</h1>
-      ${rank?`<p class="tiny">${board.length}人中 ${rank} 位</p>`:''}
+      ${graded.length
+        ? `<h1 style="font-size:26px">${mine} / ${graded.length} 問 正解</h1>
+           ${rank?`<p class="tiny">${board.length}人中 ${rank} 位</p>`:''}`
+        : `<h1 style="font-size:24px">ご回答ありがとうございました</h1>
+           <p class="tiny">${myN} 問に回答しました（参加 ${board.length}人）</p>`}
     </div>
     <div class="card pad" style="margin-top:14px;margin-bottom:24px">
-      <div class="eyebrow" style="margin-bottom:8px">設問ごとの結果</div>
+      <div class="eyebrow" style="margin-bottom:8px">${graded.length?'設問ごとの結果':'あなたの回答'}</div>
       <table><tbody>${revealed.map(i=>{
         const q=c.questions[i]; if(!q) return '';
-        const okk=same(S.my[i],cor[i]);
+        const my=S.my[i]||[];
+        if(!scored(i)) return `<tr><td style="width:38px" class="tiny">Q${i+1}</td>
+          <td>${esc(q.text)}</td>
+          <td class="n">${my.length?my.map(x=>KEYS[x]).join('・'):'—'}</td></tr>`;
+        const okk=same(my,cor[i]);
         return `<tr><td style="width:38px" class="tiny">Q${i+1}</td>
           <td>${esc(q.text)}</td>
           <td class="n" style="color:${okk?'var(--green)':'var(--red)'}">${okk?'○':'×'}</td></tr>`;
